@@ -6,33 +6,18 @@
  * @license       http://opensource.org/licenses/bsd-license.php The BSD License
  */
 
-namespace app\extensions\adapter\storage\cache;
+namespace li3_mongodb_cache_adapter\extensions\adapter\storage\cache;
 
 use lithium\core\Libraries;
 use lithium\data\Connections;
 use MongoDate;
 
 /**
- * A minimal file-based cache.
+ * A MongoDb-based cache.
  *
- * This File adapter provides basic support for `write`, `read`, `delete`
- * and `clear` cache functionality, as well as allowing the first four
- * methods to be filtered as per the Lithium filtering system. The File adapter
- * is a very simple cache, and should only be used for prototyping or for specifically
- * caching _files_. For more general caching needs, please consider using a more
- * appropriate cache adapter.
- *
- * This adapter does *not* provide increment/decrement functionality. For such
- * functionality, please use a more appropriate cache adapter.
- *
- * This adapter does *not* allow multi-key operations for any methods.
- *
- * The path that the cached files will be written to defaults to
- * `<app>/resources/tmp/cache`, but is user-configurable on cache configuration.
- *
- * Note that the cache expiration time is stored within the first few bytes
- * of the cached data, and is transparently added and/or removed when values
- * are stored and/or retrieved from the cache.
+ * This MongoDb adapter provides support for `write`, `read`, `delete`, `increment`
+ * 'decrement', and `clear` cache functionality, as well as allowing the first four
+ * methods to be filtered as per the Lithium filtering system.
  *
  * @see lithium\storage\cache\adapter
  */
