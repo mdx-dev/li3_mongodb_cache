@@ -6,7 +6,7 @@
  * @license       http://opensource.org/licenses/bsd-license.php The BSD License
  */
 
-namespace li3_mongodb_cache_adapter\extensions\adapter\storage\cache;
+namespace li3_mongodb_cache\extensions\adapter\storage\cache;
 
 use lithium\core\Libraries;
 use lithium\data\Connections;
