@@ -59,7 +59,11 @@ class MongoDb extends \lithium\core\Object {
 	 *        - 'max': If capped, the maximum number of entries; defaults to null (unlimited)
 	 *        - 'background': build the index; defaults to true
 	 *        - 'expiry' : Default expiry time used if none is explicitly set when calling `Cache::write()`.
-	 *        = 'useTtlCollection': Use MongoDB 2.2+ TTL collections for expiration (instead of adding an expiration attribute to cache entries and simply excluding them from find and update); defaults to false
+	 *        - 'useTtlCollection': Use MongoDB 2.2+ TTL collections for expiration (instead of adding an expiration
+	 *           attribute to cache entries and simply excluding them from find and update); defaults to false. Note:
+	 *           use of this feature requires that all cached entires be expired at the default expiry since the TTL
+	 *           is enforced at the index level instead of the individual row. Therefore, expiry values provided to
+	 *           write will be disregarded in favor of the index-wide TTL.
 	 */
 	public function __construct(array $config = array()) {
 		$defaults = array(
@@ -85,9 +89,26 @@ class MongoDb extends \lithium\core\Object {
 	protected function _init() {
 		$this->_server = $this->_server ?: Connections::get($this->_config['connection']);
 		$this->_connection = $this->_server->selectDb($this->_config['database']);
-		$this->_connection->command(array('create' => $this->_config['collection'], 'capped' => $this->_config['capped'], 'size' => $this->_config['capped'], 'max' => $this->_config['capped']));
-		$this->_collection = $this->_connection->selectCollection('cache');
-		$this->_collection->ensureIndex(array('key' => 1, 'expires'), array('unique' => true, 'dropDups' => true, 'background' => $this->_config['capped']));
+		$this->_connection->command(array('create' => $this->_config['collection'], 'capped' => $this->_config['capped'], 'size' => $this->_config['size'], 'max' => $this->_config['max']));
+		$this->_collection = $this->_connection->selectCollection($this->_config['collection']);
+
+		$options = $options = array('unique' => true, 'dropDups' => true, 'background' => $this->_config['capped']);
+
+		if ($this->_config['useTtlCollection']) {
+			if (isset($this['expiry'])) {
+				$options['expireAfterSeconds'] = strtotime($this->_config['expiry']);
+				$index = array('key' => 1);
+			}
+			else {
+				$this['useTtlCollection'] = false;
+				$index = array('key' => 1, 'expires');
+			}
+		}
+		else {
+			$index = array('key' => 1, 'expires');
+		}
+
+		$this->_collection->ensureIndex($index, $options);
 	}
 
 	/**
@@ -97,13 +118,20 @@ class MongoDb extends \lithium\core\Object {
 	 * @param mixed $data The value to be cached.
 	 * @param null|string $expiry A strtotime() compatible cache time. If no expiry time is set,
 	 *        then the default cache expiration time set with the cache configuration will be used.
+	 *        NOTE: If useTtlCollection is set, the $expiry provided will be ignored in favor of the default
 	 * @return closure Function returning boolean `true` on successful write, `false` otherwise.
 	 */
 	public function write($key, $data, $expiry = null) {
 		$collection =& $this->_collection;
 		$expiry = ($expiry) ?: $this->_config['expiry'];
-		return function($self, $params) use (&$collection, $expiry) {
-			return $collection->insert(array('key' => $params['key'], 'value' => $params['data'], 'expires' => new MongoDate(strtotime($expiry))));
+		$useTtl = $this->_config['useTtlCollection'];
+		return function($self, $params) use (&$collection, $expiry, $useTtl) {
+			if ($useTtl) {
+				return $collection->insert(array('key' => $params['key'], 'value' => $params['data']));
+			}
+			else {
+				return $collection->insert(array('key' => $params['key'], 'value' => $params['data'], 'expires' => (isset($expiry) ? new MongoDate(strtotime($expiry)) : null)));
+			}
 		};
 	}
 
@@ -115,8 +143,14 @@ class MongoDb extends \lithium\core\Object {
 	 */
 	public function read($key) {
 		$collection =& $this->_collection;
-		return function($self, $params) use (&$collection) {
-			$entry = $collection->findOne(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDb())), array('value' => true));
+		$useTtl = $this->_config['useTtlCollection'];
+		return function($self, $params) use (&$collection, $useTtl) {
+			if ($useTtl) {
+				$entry = $collection->findOne(array('key' => $params['key']), array('value' => true));
+			}
+			else {
+				$entry = $collection->findOne(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDate())), array('value' => true));
+			}
 			return $entry['value'];
 		};
 	}
@@ -148,8 +182,14 @@ class MongoDb extends \lithium\core\Object {
 		 */
 	public function increment($key, $offset = 1) {
 		$collection =& $this->_collection;
-		return function($self, $params) use (&$collection) {
-			$entry = $collection->update(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDb())), array('$inc' => array("value" => $params['offset'])), array("upsert" => true));
+		$useTtl = $this->_config['useTtlCollection'];
+		return function($self, $params) use (&$collection, $useTtl) {
+			if ($useTtl) {
+				$entry = $collection->update(array('key' => $params['key']), array('$inc' => array("value" => $params['offset'])), array("upsert" => true));
+			}
+			else {
+				$entry = $collection->update(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDate())), array('$inc' => array("value" => $params['offset'])), array("upsert" => true));
+			}
 			return $entry;
 		};
 	}
@@ -167,8 +207,14 @@ class MongoDb extends \lithium\core\Object {
 	 */
 	public function decrement($key, $offset = 1) {
 		$collection =& $this->_collection;
-		return function($self, $params) use (&$collection, $offset) {
-			$entry = $collection->update(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDb())), array('$inc' => array("value" => $params['offset'] * -1)), array("upsert" => true));
+		$useTtl = $this->_config['useTtlCollection'];
+		return function($self, $params) use (&$collection, $offset, $useTtl) {
+			if ($useTtl) {
+				$entry = $collection->update(array('key' => $params['key']), array('$inc' => array("value" => $params['offset'] * -1)), array("upsert" => true));
+			}
+			else {
+				$entry = $collection->update(array('key' => $params['key'], 'expires' => array('$gte' => new MongoDate())), array('$inc' => array("value" => $params['offset'] * -1)), array("upsert" => true));
+			}
 			return $entry;
 		};
 	}
