@@ -1,9 +1,9 @@
 {
-	"name": "mdx-dev/li3_mongodb_cache_adapter",
+	"name": "mdx-dev/li3_mongodb_cache",
 	"type": "lithium-library",
 	"description": "A Lithium PHP cache adapter for MongoDB",
 	"keywords": ["lithium", "li3", "caching", "mongodb", "mongo"],
-	"homepage": "https://github.com/mdx-dev/li3_mongodb_cache_adapter/blob/master/README.md",
+	"homepage": "https://github.com/mdx-dev/li3_mongodb_cache/blob/master/README.md",
 	"license": "The BSD License",
 	"authors": [
 		{
