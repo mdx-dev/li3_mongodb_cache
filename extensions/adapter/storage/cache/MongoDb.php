@@ -95,7 +95,7 @@ class MongoDb extends \lithium\core\Object {
 		$options = $options = array('unique' => true, 'dropDups' => true, 'background' => $this->_config['capped']);
 
 		if ($this->_config['useTtlCollection']) {
-			if (isset($this['expiry'])) {
+			if (isset($this->_config['expiry'])) {
 				$options['expireAfterSeconds'] = strtotime($this->_config['expiry']);
 				$index = array('key' => 1);
 			}
