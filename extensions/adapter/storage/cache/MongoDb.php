@@ -164,7 +164,7 @@ class MongoDb extends \lithium\core\Object {
 	public function delete($key) {
 		$collection =& $this->_collection;
 		return function($self, $params) use (&$collection) {
-			$entry = $collection->remove(array('key' => $params['key']));
+			$entry = $collection->update(array('key' => $params['key']), array('key' => microtime(true), 'value' => null));
 			return $entry;
 		};
 	}
