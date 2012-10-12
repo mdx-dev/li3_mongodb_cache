@@ -125,12 +125,16 @@ class MongoDb extends \lithium\core\Object {
 		$collection =& $this->_collection;
 		$expiry = ($expiry) ?: $this->_config['expiry'];
 		$useTtl = $this->_config['useTtlCollection'];
-		return function($self, $params) use (&$collection, $expiry, $useTtl) {
-			if ($useTtl) {
-				return $collection->insert(array('key' => $params['key'], 'value' => $params['data']));
+		$insert = is_null($this->read($key));
+		return function($self, $params) use (&$collection, $expiry, $useTtl, $insert) {
+			$params = array('key' => $params['key'], 'value' => $params['data']);
+			if (!$useTtl) {
+				$params['expires'] = (isset($expiry) ? new MongoDate(strtotime($expiry)) : null);
 			}
-			else {
-				return $collection->insert(array('key' => $params['key'], 'value' => $params['data'], 'expires' => (isset($expiry) ? new MongoDate(strtotime($expiry)) : null)));
+			if(!$insert) { // update
+				$collection->update(array('key' => $params['key']), $params);
+			} else { // insert
+				$collection->insert($params);
 			}
 		};
 	}
