@@ -1,0 +1,20 @@
+language: php
+
+php:
+  - 5.3
+  - 5.4
+
+services:
+  - mongodb
+
+before_install:
+  - pecl -q install mongo && echo "extension=mongo.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
+  - cd ../
+  - git clone git://github.com/UnionOfRAD/framework.git
+  - mv li3_mongodb_cache/ framework/app/libraries/li3_mongodb_cache
+  - cd framework
+  - git submodule update --init --recursive
+  - cd libraries/lithium && git pull --rebase origin master
+  - cd ../../app/libraries/li3_mongodb_cache
+
+script: ../../../libraries/lithium/console/li3 test tests
