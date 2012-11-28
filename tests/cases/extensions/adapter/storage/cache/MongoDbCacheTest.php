@@ -10,8 +10,8 @@ class MongoDbCacheTest extends \lithium\test\Unit {
 
 	public $defaultOptions = array(
 		'adapter' => 'MongoDb',
-		'database' => 'vitals',
-		'collection' => 'mongodb_cache_test',
+		'database' => 'database_test',
+		'collection' => 'collection_test',
 		'expiry' => '+10 days',
 		'capped' => false
 	);
