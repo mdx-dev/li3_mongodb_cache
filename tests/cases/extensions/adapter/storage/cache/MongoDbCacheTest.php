@@ -3,22 +3,28 @@
 namespace li3_mongodb_cache\tests\cases\extensions\adapter\storage\cache;
 
 use lithium\storage\Cache;
+use lithium\data\Connections;
 
 class MongoDbCacheTest extends \lithium\test\Unit {
 
 	public $cachedName = 'mongodb_cache_test_foo';
 
-	public $defaultOptions = array(
-		'adapter' => 'MongoDb',
-		'database' => 'database_test',
-		'collection' => 'collection_test',
-		'expiry' => '+10 days',
-		'capped' => false
-	);
-
 	public function setUp() {
+		Connections::add('connection_test', array(
+			'type' => 'MongoDb',
+			'adapter' => 'MongoDb',
+			'host' => 'localhost',
+			'database' => 'database_test',
+		));
 		Cache::config(array(
-			$this->cachedName => $this->defaultOptions,
+			$this->cachedName => array(
+				'adapter' => 'MongoDb',
+				'connection' => 'connection_test',
+				'database' => 'database_test',
+				'collection' => 'collection_test',
+				'expiry' => '+10 days',
+				'capped' => false
+			),
 		));
 		Cache::clear($this->cachedName);
 	}
