@@ -42,7 +42,7 @@ class MongoDbCacheTest extends \lithium\test\Unit {
 
 	public function testOverwriteValue() {
 		$value = 'foobar';
-		Cache::write($this->cachedName, 'not_foobar', $value);
+		Cache::write($this->cachedName, 'foo', 'not_barfoo');
 		Cache::write($this->cachedName, 'foo', $value);
 		$result = Cache::read($this->cachedName, 'foo');
 		$this->assertEqual($value, $result);
