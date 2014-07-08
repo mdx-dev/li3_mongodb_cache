@@ -101,11 +101,11 @@ class MongoDb extends \lithium\core\Object {
 			}
 			else {
 				$this['useTtlCollection'] = false;
-				$index = array('key' => 1, 'expires');
+				$index = array('key' => 1, 'expires' => 1);
 			}
 		}
 		else {
-			$index = array('key' => 1, 'expires');
+			$index = array('key' => 1, 'expires' => 1);
 		}
 
 		$this->_collection->ensureIndex($index, $options);
